@@ -1,0 +1,64 @@
+body {
+    margin-left: auto;
+    margin-right: auto;
+    width: 70%;
+    color: black;
+    background-color: #ffffff;
+    font-family: "Whitman", sans-serif;
+    font-size: 12pt;
+    text-decoration: none;
+}
+
+@media screen and (max-width: 900px) {
+    body {
+        width: 90%;
+    }
+}
+
+li:not(:last-child) {
+    margin-bottom: 20px;
+}
+
+.menu-top {
+    margin-top: 10px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 90%;
+    color: black;
+    font-family: "Whitman", sans-serif;
+    font-size: 12pt;
+    text-decoration: none;
+    font-weight: bold;
+    text-align: center;
+}
+
+.menu-link {
+    color: black;
+    text-decoration: none;
+}
+
+.menu-link:hover {
+    color: black;
+    text-decoration: underline;
+}
+
+.code-item {
+    font-family: Georgia, "Times New Roman", Times, serif;
+}
+
+#paraLeftPad {
+    text-align: left;
+    padding: 0 0 10px 10px;
+}
+
+#paraLeft {
+    text-align: left;
+}
+
+#paraCenter {
+    text-align: center;
+}
+
+img {
+    border: 0;
+}
