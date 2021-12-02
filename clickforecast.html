@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Python NWS API Test - KLC</title>
+    <meta charset="UTF-8">
+    <meta name="description" content="Python/Flask Testing Site">
+    <meta name="keywords" content="python, flask, api">
+    <link rel="stylesheet" href="scripts/pagestyles.css" type="text/css"/>
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+    <link rel="manifest" href="images/site.webmanifest">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!--
+    Information from:
+    https://leafletjs.com/examples/quick-start/
+    -->
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+          integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+          crossorigin=""/>
+
+    <!-- Make sure you put this AFTER Leaflet's CSS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+            integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+            crossorigin=""></script>
+
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+            margin: auto;
+        }
+
+        table,
+        td,
+        th {
+            border: 1px solid black;
+            border-spacing: 0 0;
+        }
+
+        td,
+        th {
+            vertical-align: top;
+            padding: 5px 5px;
+        }
+
+        #forecast {
+            height: 700px;
+            background-color: #eeeeee;
+            padding: 10px 10px;
+            font-size: 10pt;
+        }
+    </style>
+
+    <script>
+        // Global variables.
+        var lat;
+        var lon;
+        // You can create your own free API access token at mapbox.com. I will be regenerating mine at some time so don't count on it.
+        let apiToken = "pk.eyJ1Ijoia2FzaWxha2Vjb25zdWx0aW5nIiwiYSI6ImNrd2pud3l2dzFrMjIzMXFiNXIxemx1dDYifQ.OozElqmi8hQvEaJDH5lIVw";
+
+        // "async" allows the use of "await" in the fetch() call.
+        async function fetch_area(lat, lon) {
+            let results = "";
+            let url = "";
+
+            document.getElementById("forecast").innerHTML = "";
+
+            url = "https://api.mapbox.com/geocoding/v5/mapbox.places/" + lon + "," + lat + ".json?access_token=" + apiToken;
+            //console.log("Reverse lookup url: " + url);
+
+            const response = await fetch(url);
+            //console.log("fetch response: " + response);
+
+            if (response.ok) {
+                const areaData = await response.json();
+                //console.log("api response: " + areaData);
+
+                let features = areaData["features"];
+                var i = 1;
+
+                Object.keys(features[0]["context"]).forEach(
+                    key => {
+                        var info = features[0]["context"][key]["text"];
+                        // Skip zip code.
+                        if (isNaN(Number(info))) {
+                            if (i > 1) results += ", ";
+                            results += info;
+                            i += 1;
+                        }
+                    }
+                );
+                //console.log("area: "+results);
+            } else {
+                results = "Reverse lookup failed with http code: " + response.status;
+            }
+
+            // Because this function is async, it may return before the popup is ready.
+            // So, we fill in the area text after it is obtained.
+            let area = results;
+            document.getElementById("area").innerHTML = "Area: " + area;
+
+            if (response.ok) {
+                // Fetch and display the forecast.
+                let forecast = "<p>" + area + "</p>";
+                document.getElementById("forecast").innerHTML = forecast;
+                url = "https://kasilakeconsult.pythonanywhere.com/forecastLatLon/" + lat + "/" + lon;
+
+                const response = await fetch(url);
+                console.log("Python fetch response: " + response);
+
+                if (response.ok) {
+                    document.getElementById("forecast").innerHTML = "<p>" + area + "</p>";
+
+                    const forecastData = await response.json();
+                    console.log("API response: " + forecastData.result);
+
+                    if (forecastData.result !== 'ok') {
+                        document.getElementById("forecast").innerHTML += "<p>The forecast could not be obtained: " + forecastData.message + "</p><p>Please try again.</p>";
+                    } else {
+                        let forecasts = forecastData.forecasts;
+                        let forecastOutput = "";
+
+                        forecastOutput = "<p><table><tr><th align='center'>When</th><th align='center'>Forecast</th></tr>";
+
+                        for (let i = 0; i < forecasts.length; i++) {
+                            let forecast = forecasts[i];
+                            //Object.keys(forecasts[i]).forEach(key => (forecastOutput += "<tr><td>" + key + "</td><td>"+ forecast['key'] + "</td></tr>"));
+                            forecastOutput += "<tr><td>" + forecast['name'] + "</td><td>" + forecast['detailedForecast'] + "</td></tr>";
+                        }
+
+                        forecastOutput += "</table></p>";
+                        document.getElementById("forecast").innerHTML += forecastOutput;
+                    }
+
+                } else {
+                    document.getElementById("forecast").innerHTML += "<p>API call failed with http code: " + response.status + "</p>";
+                }
+            }
+        }
+    </script>
+
+</head>
+
+<body>
+
+<p id="paraCenter">
+    <img src="images/small-logo.png" title="Kasi Lake Consulting LLC logo" alt="Kasi Lake Consulting LLC logo" width=300
+         height=94>
+
+<nav>
+    <div class="menu-top">
+        <a href="index.php" class="menu-link">Home</a> &nbsp;|&nbsp;
+        <a href="about.php" class="menu-link">About</a> &nbsp;|&nbsp;
+        <a href="services.php" class="menu-link">Services</a> &nbsp;|&nbsp;
+        <a href="resume.php" class="menu-link">Resum&eacute;</a> &nbsp;|&nbsp;
+        <a href="code.php" class="menu-link">Code</a> &nbsp;|&nbsp;
+        <a href="contact.php" class="menu-link">Contact</a>
+    </div>
+</nav>
+<br>
+
+<p id="paraLeft">
+    <b>Python NWS API Test</b>
+<hr>
+</p>
+
+<p>Javascript is used to display a map of the U.S. via Leaflet and Mapbox, and it obtains a weather forecast from the
+    National Weather Service via a Flask Python API.</p>
+
+<p>Use:<br>
+<ol>
+    <li> Click on a point on the U.S. map to obtain the forecast for that area.</li>
+    <li> Use the +/- map buttons, or use native options, to affect the zoom level.</li>
+    <li> Click-drag on the map to move it.</li>
+    <li> To reset the map, reload the page.</li>
+</ol>
+</p>
+
+<div id="map"></div>
+<br>
+
+<div id="forecast"><p>Forecast information will appear here.</p></div>
+
+<hr>
+
+<p>References:</p>
+
+Leaflet: <a href="https://leafletjs.com/">leafletjs.com</a><br>
+Mapbox: <a href="https://mapbox.com/">mapbox.com</a><br>
+OpenStreetMap: <a href="https://www.openstreetmap.org/about">openstreetmap.org/about</a><br>
+Flask/Python API: <a href="https://kasilakeconsult.pythonanywhere.com/">kasilakeconsult.pythonanywhere.com</a><br>
+GitHub: <a href="https://github.com/kasilakeconsulting/python-flask-forecast-map">github.com/kasilakeconsulting/python-flask-forecast-map</a><br>
+
+<br><br>
+<p style="text-align: center; font-size:10pt;">
+    Copyright &copy; 2021, <span translate="no">Kasi Lake Consulting LLC</span><br>
+    Trademarks are owned by their respective companies.
+</p>
+
+
+<script>
+    var map = L.map('map').setView([39.1641, -99.4921], 4);
+
+    L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=' + apiToken, {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: 'your.mapbox.access.token'
+    }).addTo(map);
+
+    var popup = L.popup()
+
+    /*
+        .setLatLng([38.8894, -77.0352])
+        .setContent("I am a standalone popup.")
+        .openOn(map);
+    */
+
+    function onMapClick(e) {
+        //console.log("Lat/lon pair: " + e.latlng);
+        lat = e.latlng["lat"];
+        lon = e.latlng["lng"];
+
+        let latDisplay = Math.round(lat * 10000) / 10000.0;
+        let lonDisplay = Math.round(lon * 10000) / 10000.0;
+
+        // Do a reverse lookup on the lat/lon to get text for the area (city, state).
+
+        fetch_area(lat, lon);
+
+        // Get and display the forecast.
+
+        popup
+            .setLatLng(e.latlng)
+            .setContent("Lat/lon: " + latDisplay + "," + lonDisplay + "<div id=\"area\"</div>")
+            .openOn(map);
+    }
+
+    map.on('click', onMapClick);
+
+</script>
+
+</body>
+</html>
